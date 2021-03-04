@@ -304,7 +304,7 @@ func (f *File) openWriteStream() error {
 	f.streamWrite = writer
 
 	uploader := s3manager.NewUploader(f.fs.session)
-	uploader.Concurrency = 1
+	uploader.Concurrency = 30
 
 	go func() {
 		input := &s3manager.UploadInput{
