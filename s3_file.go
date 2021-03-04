@@ -303,8 +303,10 @@ func (f *File) openWriteStream() error {
 	f.streamWriteCloseErr = make(chan error)
 	f.streamWrite = writer
 
-	uploader := s3manager.NewUploader(f.fs.session)
-	uploader.Concurrency = 30
+	uploader := s3manager.NewUploader(f.fs.session, func(u *s3manager.Uploader) {
+		u.PartSize = 31 * 1024 * 1024
+		u.Concurrency = 30
+	})
 
 	go func() {
 		input := &s3manager.UploadInput{
