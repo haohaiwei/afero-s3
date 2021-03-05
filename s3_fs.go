@@ -62,7 +62,12 @@ func (Fs) Name() string { return "s3" }
 // Create a file.
 func (fs Fs) Create(name string) (afero.File, error) {
 	{ // It's faster to trigger an explicit empty put object than opening a file for write, closing it and re-opening it
-		req := &s3.PutObjectInput{
+
+		uploader := s3manager.NewUploader(fs.session, func(u *s3manager.Uploader) {
+			u.PartSize = 31 * 1024 * 1024
+			u.Concurrency = 30
+		})
+		req := &s3manager.UploadInput{
 			Bucket: aws.String(fs.bucket),
 			Key:    aws.String(name),
 			Body:   bytes.NewReader([]byte{}),
@@ -77,7 +82,7 @@ func (fs Fs) Create(name string) (afero.File, error) {
 			req.ContentType = aws.String(mime.TypeByExtension(filepath.Ext(name)))
 		}
 
-		_, errPut := fs.s3API.PutObject(req)
+		_, errPut := uploader.Upload(req)
 		if errPut != nil {
 			return nil, errPut
 		}
@@ -329,7 +334,7 @@ func (Fs) Chtimes(string, time.Time, time.Time) error {
 
 // I couldn't find a way to make this code cleaner. It's basically a big copy-paste on two
 // very similar structures.
-func applyFileCreateProps(req *s3.PutObjectInput, p *UploadedFileProperties) {
+func applyFileCreateProps(req *s3manager.UploadInput, p *UploadedFileProperties) {
 	if p.ACL != nil {
 		req.ACL = p.ACL
 	}

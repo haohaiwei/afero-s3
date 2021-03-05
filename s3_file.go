@@ -308,32 +308,30 @@ func (f *File) openWriteStream() error {
 		u.Concurrency = 30
 	})
 
-	go func() {
-		input := &s3manager.UploadInput{
-			Bucket: aws.String(f.fs.bucket),
-			Key:    aws.String(f.name),
-			Body:   reader,
-		}
+	input := &s3manager.UploadInput{
+		Bucket: aws.String(f.fs.bucket),
+		Key:    aws.String(f.name),
+		Body:   reader,
+	}
 
-		if f.fs.FileProps != nil {
-			applyFileWriteProps(input, f.fs.FileProps)
-		}
+	if f.fs.FileProps != nil {
+		applyFileWriteProps(input, f.fs.FileProps)
+	}
 
-		// If no Content-Type was specified, we'll guess one
-		if input.ContentType == nil {
-			input.ContentType = aws.String(mime.TypeByExtension(filepath.Ext(f.name)))
-		}
+	// If no Content-Type was specified, we'll guess one
+	if input.ContentType == nil {
+		input.ContentType = aws.String(mime.TypeByExtension(filepath.Ext(f.name)))
+	}
 
-		_, err := uploader.Upload(input)
+	_, err := uploader.Upload(input)
 
-		if err != nil {
-			f.streamWriteErr = err
-			_ = f.streamWrite.Close()
-		}
+	if err != nil {
+		f.streamWriteErr = err
+		_ = f.streamWrite.Close()
+	}
 
-		f.streamWriteCloseErr <- err
-		// close(f.streamWriteCloseErr)
-	}()
+	f.streamWriteCloseErr <- err
+	// close(f.streamWriteCloseErr)
 	return nil
 }
 
